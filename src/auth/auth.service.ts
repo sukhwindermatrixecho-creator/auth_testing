@@ -128,7 +128,7 @@ export async function refreshAccessToken(
         await prisma.refreshToken.update({
             where: { id: storedToken.id },
             data: {
-                revokedAt: null,
+                revokedAt: new Date(),
             },
         });
         throw new AppError('Invalid refresh token', 401);
