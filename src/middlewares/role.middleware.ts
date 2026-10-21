@@ -14,25 +14,28 @@ export function requiredRole(role: Role) {
             });
         }
 
-        const user = await prisma.user.findUnique({
-            where: { id: req.user!.userId },
-            select: {
-                role: true,
-            },
-        });
-
-        if(!user) {
-            return res.status(404).json({
-                message: "User not found",
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: req.user!.userId },
+                select: {
+                    role: true,
+                },
             });
+    
+            if(!user) {
+                return res.status(404).json({
+                    message: "User not found",
+                });
+            }
+    
+            if(user.role !== role) {
+                return res.status(403).json({
+                    message: "Forbidden",
+                });
+            }
+            return next();
+        } catch (error) {
+            return next(error);
         }
-
-        if(user.role !== role) {
-            return res.status(403).json({
-                message: "Forbidden",
-            });
-        }
-
-        next();
-    }
+    };
 }
