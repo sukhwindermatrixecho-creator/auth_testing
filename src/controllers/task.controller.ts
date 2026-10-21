@@ -133,3 +133,27 @@ export async function getTaskById(
         return next(error)
     }
 }
+
+export async function getMyTasks(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) {
+    try {
+        const tasks = await prisma.task.findMany({
+            where: {
+                userId: req.user!.userId,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+
+        return res.json({
+            message: "Tasks fetched successfully",
+            tasks,
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
