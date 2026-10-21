@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma.js";
 import { AppError } from "../errors/app.error.js";
+import { asyncHandler } from "../utils/async-handler.js";
 
 export async function createTask(
     req: Request,
@@ -99,37 +100,29 @@ export async function deleteTask(
     }
 }
 
-export async function getTaskById(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-) {
-    try {
-        const taskId = Number(req.params.id);
-        
-        if(!Number.isInteger(taskId) || taskId <= 0) {
-            throw new AppError("Invalid task ID", 400);
-        }
+export const getTaskById = asyncHandler(async (req, res) => {
+    const taskId = Number(req.params.id);
 
-        const task = await prisma.task.findFirst({
-            where: {
-                id: taskId,
-                userId: req.user!.userId,
-            },
-        });
-
-        if(!task) {
-            throw new AppError("Task not found", 404);
-        }
-
-        return res.json({
-            message: "Task fetched successfully",
-            task,
-        });
-    } catch (error) {
-        return next(error)
+    if (!Number.isInteger(taskId) || taskId <= 0) {
+        throw new AppError("Invalid task ID", 400);
     }
-}
+
+    const task = await prisma.task.findFirst({
+        where: {
+            id: taskId,
+            userId: req.user!.userId,
+        },
+    });
+
+    if (!task) {
+        throw new AppError("Task not found", 404);
+    }
+
+    return res.json({
+        message: "Task fetched successfully",
+        task,
+    });
+});
 
 export async function getMyTasks(
     req: Request,
