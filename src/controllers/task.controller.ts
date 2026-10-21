@@ -97,3 +97,39 @@ export async function deleteTask(
         return next(error);
     }
 }
+
+export async function getTaskById(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) {
+    try {
+        const taskId = Number(req.params.id);
+        
+        if(!Number.isInteger(taskId) || taskId <= 0) {
+            return res.status(400).json({
+                message: "Invalid task id",
+            });
+        }
+
+        const task = await prisma.task.findFirst({
+            where: {
+                id: taskId,
+                userId: req.user!.userId,
+            },
+        });
+
+        if(!task) {
+            return res.status(404).json({
+                message: "Task not found",
+            });
+        }
+
+        return res.json({
+            message: "Task fetched successfully",
+            task,
+        });
+    } catch (error) {
+        return next(error)
+    }
+}
