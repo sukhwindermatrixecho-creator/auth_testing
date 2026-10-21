@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma.js";
+import { AppError } from "../errors/app.error.js";
 
 export async function createTask(
     req: Request,
@@ -107,9 +108,7 @@ export async function getTaskById(
         const taskId = Number(req.params.id);
         
         if(!Number.isInteger(taskId) || taskId <= 0) {
-            return res.status(400).json({
-                message: "Invalid task id",
-            });
+            throw new AppError("Invalid task ID", 400);
         }
 
         const task = await prisma.task.findFirst({
@@ -120,9 +119,7 @@ export async function getTaskById(
         });
 
         if(!task) {
-            return res.status(404).json({
-                message: "Task not found",
-            });
+            throw new AppError("Task not found", 404);
         }
 
         return res.json({

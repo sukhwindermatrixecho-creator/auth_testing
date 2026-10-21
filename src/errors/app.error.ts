@@ -1,9 +1,11 @@
 export class AppError extends Error {
-    statusCode: number;
-
-    constructor(message: string, statusCode: number) {
+    constructor(
+        message: string,
+        public readonly statusCode: number, // declares and assigns the property in the constructor automatically.
+    ) {
         super(message);
-        this.statusCode = statusCode;
-        Object.setPrototypeOf(this, AppError.prototype);
+        this.name = "AppError"; // gives the error a clear name when logged.
+        // preserves the correct prototype if you later extend AppError with specialized error classes.
+        Object.setPrototypeOf(this, new.target.prototype);
     }
 }
