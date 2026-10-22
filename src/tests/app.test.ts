@@ -8,4 +8,11 @@ describe("Application", () => {
 
         expect(response.status).toBe(200);
     });
+
+
+    it("should reject requests without an access token", async () => {
+        const response = await request(app).get("/tasks");
+
+        expect(response.status).toBe(401);
+    });
 });

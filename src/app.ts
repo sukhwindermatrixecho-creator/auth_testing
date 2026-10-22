@@ -11,15 +11,17 @@ app.use(express.json());
 app.use(cookieParser());
 
 
+
+app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+app.use("/tasks", tasksRoutes);
+
 app.use("/", (req, res) => {
     return res.status(200).json({
         message: "Application is running",
     });
 });
 
-app.use('/auth', authRoutes);
-app.use('/users', userRoutes);
-app.use("/tasks", tasksRoutes);
 
 app.use(errorHandler);
 
