@@ -124,26 +124,18 @@ export const getTaskById = asyncHandler(async (req, res) => {
     });
 });
 
-export async function getMyTasks(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-) {
-    try {
-        const tasks = await prisma.task.findMany({
-            where: {
-                userId: req.user!.userId,
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
-        });
+export const getMyTasks = asyncHandler(async (req, res) => {
+    const tasks = await prisma.task.findMany({
+        where: {
+            userId: req.user!.userId,
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
 
-        return res.json({
-            message: "Tasks fetched successfully",
-            tasks,
-        });
-    } catch (error) {
-        return next(error);
-    }
-}
+    return res.json({
+        message: "Tasks fetched successfully",
+        tasks,
+    });
+});
