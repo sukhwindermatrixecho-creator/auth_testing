@@ -15,4 +15,13 @@ describe("Application", () => {
 
         expect(response.status).toBe(401);
     });
+
+    it("it should reject a malformed access token", async () => {
+        const response = await request(app)
+            .get("/tasks")
+            .set("authorization", "Bearer invalid-token");
+
+        expect(response.status).toBe(401);
+        expect(response.body.message).toBe("Invalid or expired token");
+    });
 });
