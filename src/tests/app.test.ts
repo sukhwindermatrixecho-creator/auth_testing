@@ -225,5 +225,43 @@ describe("Application", () => {
                 },
             });
         }
-    })
+    });
+
+    it("should reject a task with an empty title", async () => {
+        const user = await prisma.user.create({
+            data: {
+                name: "User A",
+                email: `a-${Date.now()}@example.com`,
+                password: "hashed-password",
+                role: Role.USER,
+                emailVerified: true,
+            },
+        });
+
+        try {
+            const token = jwt.sign(
+                {userId: user.id},
+                process.env.SECRET_KEY!,
+            );
+
+            const response = await request(app)
+                .post("/tasks/create")
+                .set("Authorization", `Bearer ${token}`)
+                .send({ title: ""});
+
+            expect(response.status).toBe(400);
+            expect(response.body.message).toBe("Validation failed"),
+            expect(response.body.errors).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        field: "title",
+                    }),
+                ])
+            );
+        } finally {
+            await prisma.user.delete({
+                where: { id: user.id },
+            });
+        }
+    });
 });
