@@ -63,4 +63,54 @@ describe("Application", () => {
             });
         }
     });
+
+    it("should not allow a user to access other user's task", async () => {
+        const userA = await prisma.user.create({
+            data: {
+                name: "User A",
+                email: `a-${Date.now()}@example.com`,
+                password: "test-password-hash",
+                role: Role.USER,
+                emailVerified: true,
+            },
+        });
+
+        const userB = await prisma.user.create({
+            data: {
+                name: "User B",
+                email: `b-${Date.now()}@example.com`,
+                password: "test-password-hash",
+                role: Role.USER,
+                emailVerified: true,
+            },
+        });
+
+
+        try {
+            const task = await prisma.task.create({
+                data: {
+                    title: "Task A",
+                    userId: userA.id,
+                },
+            });
+
+            const userBToken = jwt.sign(
+                { userId: userB.id },
+                process.env.SECRET_KEY!,
+            );
+
+            const response = await request(app)
+                .get(`/tasks/${task.id}`)
+                .set("Authorization", `Bearer ${userBToken}`);
+
+            expect(response.status).toBe(404);
+            expect(response.body.message).toBe("Task not found");
+        } finally {
+            await prisma.user.deleteMany({
+                where: {
+                    id: { in: [ userA.id, userB.id ] },
+                },
+            });
+        }
+    });
 });
