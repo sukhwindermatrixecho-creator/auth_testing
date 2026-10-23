@@ -113,4 +113,61 @@ describe("Application", () => {
             });
         }
     });
+
+    it("should not allow user to update other user's task", async () => {
+        const userA = await prisma.user.create({
+            data: {
+                name: "User A",
+                email: `a-${Date.now()}@example.com`,
+                password: "hashed-password",
+                role: Role.USER,
+                emailVerified: true,
+            },
+        });
+
+        const userB = await prisma.user.create({
+            data: {
+                name: "User B",
+                email: `b-${Date.now()}@example.com`,
+                password: "hashed-password",
+                role: Role.USER,
+                emailVerified: true,
+            },
+        });
+
+        try {
+            const task = await prisma.task.create({
+                data: {
+                    title: "Task A",
+                    userId: userA.id,
+                },
+            });
+
+            const userBToken = jwt.sign(
+                { userId: userB.id },
+                process.env.SECRET_KEY!,
+            );
+
+            const response = await request(app)
+                .patch(`/tasks/update/${task.id}`)
+                .set("Authorization", `Bearer ${userBToken}`)
+                .send({ title: "Task A change" });
+
+            expect(response.status).toBe(404);
+            
+            const unchangedTask = await prisma.task.findUnique({
+                where: {
+                    id: task.id,
+                },
+            });
+
+            expect(unchangedTask?.title).toBe("Task A");
+        } finally {
+            await prisma.user.deleteMany({
+                where: {
+                    id: { in: [userA.id, userB.id ]},
+                },
+            });
+        }
+    });
 });
