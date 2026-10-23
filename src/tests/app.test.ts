@@ -170,4 +170,60 @@ describe("Application", () => {
             });
         }
     });
+
+    it("should not allow user to delete other user's task", async () => {
+        const userA = await prisma.user.create({
+            data: {
+                name: "User A",
+                email: `a-${Date.now()}@example.com`,
+                password: "hashed-password",
+                role: Role.USER,
+                emailVerified: true,
+            },
+        });
+
+        const userB = await prisma.user.create({
+            data: {
+                name: "User B",
+                email: `b-${Date.now()}@example.com`,
+                password: "hashed-password",
+                role: Role.USER,
+                emailVerified: true,
+            },
+        });
+
+        try {
+            const task = await prisma.task.create({
+                data: {
+                    title: "Task A",
+                    userId: userA.id,
+                },
+            });
+
+            const tokenUserB = jwt.sign(
+                { userId: userB.id },
+                process.env.SECRET_KEY!,
+            );
+
+            const response = await request(app)
+                .delete(`/tasks/delete/${task.id}`)
+                .set("Authorization", `Bearer ${tokenUserB}`);
+
+            expect(response.status).toBe(404);
+
+            const remainingTask = await prisma.task.findUnique({
+                where: {
+                    id: task.id,
+                },
+            });
+
+            expect(remainingTask).not.toBe(null);
+        } finally {
+            await prisma.user.deleteMany({
+                where: {
+                    id: { in: [userA.id, userB.id ]},
+                },
+            });
+        }
+    })
 });
