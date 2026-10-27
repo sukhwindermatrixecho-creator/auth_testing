@@ -140,19 +140,35 @@ export const getMyTasks = asyncHandler(async (req, res) => {
     
     const skip = (page - 1) * limit;
 
-    const tasks = await prisma.task.findMany({
-        where: {
-            userId: req.user!.userId,
-        },
-        orderBy: {
-            createdAt: "desc",
-        },
-        skip,
-        take: limit,
-    });
+    const [tasks, totalTasks] = await prisma.$transaction([
+        prisma.task.findMany({
+            where: {
+                userId: req.user!.userId,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+            skip,
+            take: limit,
+        }),
+
+        prisma.task.count({
+            where: {
+                userId: req.user!.userId,
+            },
+        }),
+    ]);
+
+    const totalPages = Math.ceil(totalTasks / limit);
 
     return res.json({
         message: "Tasks fetched successfully",
+        pagination: {
+            totalTasks,
+            totalPages,
+            currentPage: page,
+            limit,
+        },
         tasks,
     });
 });
