@@ -264,4 +264,47 @@ describe("Application", () => {
             });
         }
     });
+    
+    it("should create a task for the authenticated user", async () => {
+        const user = await prisma.user.create({
+            data: {
+                name: "Task Creation Test User",
+                email: `create-task-${Date.now()}@example.com`,
+                password: "test-password-hash",
+                role: Role.USER,
+                emailVerified: true,
+            },
+        });
+
+        try {
+            const token = jwt.sign(
+                { userId: user.id },
+                process.env.SECRET_KEY!
+            );
+
+            const response = await request(app)
+                .post("/tasks/create")
+                .set("Authorization", `Bearer ${token}`)
+                .send({ title: "Automated test task" });
+
+            expect(response.status).toBe(201);
+            expect(response.body.message).toBe("Task created successfully");
+            expect(response.body.task.title).toBe("Automated test task");
+            expect(response.body.task.userId).toBe(user.id);
+
+            const savedTask = await prisma.task.findFirst({
+                where: {
+                    title: "Automated test task",
+                    userId: user.id,
+                },
+            });
+
+            expect(savedTask).not.toBeNull();
+        } finally {
+            await prisma.user.delete({
+                where: { id: user.id },
+            });
+        }
+    });
+
 });
