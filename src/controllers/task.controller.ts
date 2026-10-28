@@ -130,6 +130,7 @@ export const getMyTasks = asyncHandler(async (req, res) => {
     const completedQuery = req.query.completed;
     const sortBy = req.query.sortBy ?? "createdAt";
     const order = req.query.order ?? "desc";
+    const search = req.query.search;
 
     if(
         !Number.isSafeInteger(page) ||
@@ -148,15 +149,6 @@ export const getMyTasks = asyncHandler(async (req, res) => {
     ) {
         throw new AppError("completed must be either true or false", 400);
     }
-    
-    const where = {
-        userId: req.user!.userId,
-        ...(completedQuery !== undefined && {
-            completed: completedQuery === "true",
-        }),
-    };
-
-    const skip = (page - 1) * limit;
 
     if(
         sortBy !== "createdAt" &&
@@ -172,6 +164,28 @@ export const getMyTasks = asyncHandler(async (req, res) => {
     const orderBy = {
         [sortBy]: order,
     }
+
+    if(
+        search !== undefined &&
+        (typeof search !== "string" || search.trim().length === 0) 
+    ) {
+        throw new AppError("search must be a non-empty string", 400);
+    }
+    
+    const where = {
+        userId: req.user!.userId,
+        ...(completedQuery !== undefined && {
+            completed: completedQuery === "true",
+        }),
+        ...(search !== undefined && {
+            title: {
+                contains: search.trim(),
+                mode: "insensitive" as const,
+            },
+        }),
+    };
+
+    const skip = (page - 1) * limit;
 
     const [tasks, totalTasks] = await prisma.$transaction([
         prisma.task.findMany({
