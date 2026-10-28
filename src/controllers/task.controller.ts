@@ -213,3 +213,19 @@ export const getMyTasks = asyncHandler(async (req, res) => {
         tasks,
     });
 });
+
+export const bulkCreateTasks = asyncHandler(async (req, res) => {
+    const {tasks} = req.body;
+
+    const result = await prisma.task.createMany({
+        data: tasks.map((task: {title: string}) => ({
+            title: task.title,
+            userId: req.user!.userId,
+        })),
+    });
+
+    return res.status(201).json({
+        message: "Tasks created successfully",
+        count: result.count,
+    });
+});
