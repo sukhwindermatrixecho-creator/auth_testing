@@ -128,6 +128,8 @@ export const getMyTasks = asyncHandler(async (req, res) => {
     const page = Number(req.query.page ?? 1);
     const limit = Number(req.query.limit ?? 10);
     const completedQuery = req.query.completed;
+    const sortBy = req.query.sortBy ?? "createdAt";
+    const order = req.query.order ?? "desc";
 
     if(
         !Number.isSafeInteger(page) ||
@@ -156,12 +158,25 @@ export const getMyTasks = asyncHandler(async (req, res) => {
 
     const skip = (page - 1) * limit;
 
+    if(
+        sortBy !== "createdAt" &&
+        sortBy !== "title"
+    ) {
+        throw new AppError("sortBy must be createdAt or title", 400);
+    }
+
+    if(order !== "asc" && order !== "desc") {
+        throw new AppError("order must be asc or desc", 400);
+    }
+
+    const orderBy = {
+        [sortBy]: order,
+    }
+
     const [tasks, totalTasks] = await prisma.$transaction([
         prisma.task.findMany({
             where,
-            orderBy: {
-                createdAt: "desc",
-            },
+            orderBy,
             skip,
             take: limit,
         }),
