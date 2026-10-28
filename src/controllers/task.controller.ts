@@ -229,3 +229,81 @@ export const bulkCreateTasks = asyncHandler(async (req, res) => {
         count: result.count,
     });
 });
+
+
+export const transferTask = asyncHandler(async (req, res) => {
+    const taskId = Number(req.params.id);
+    const { toUserId } = req.body;
+    const currentUserId = req.user!.userId;
+
+    if(!Number.isSafeInteger(taskId) || taskId < 0) {
+        throw new AppError("Invalid task ID", 400);
+    }
+
+    if(toUserId === currentUserId) {
+        throw new AppError("Task already belongs to this user", 400);
+    }
+
+    const transferredTask = await prisma.$transaction(async (tx) => {
+        // 1. confirm the recipient exists.
+        const recipient = await tx.user.findUnique({
+            where: { id: toUserId },
+            select: { id: true },
+        });
+
+        if(!recipient) {
+            throw new AppError("Recipient not found", 404);
+        }
+
+        // 2. find a task owned by authenticated user.
+        const task = await tx.task.findFirst({
+            where: {
+                id: taskId,
+                userId: currentUserId,
+            },
+            select: {
+                id: true,
+                userId: true,
+            },
+        });
+
+        if(!task) {
+            throw new AppError("Task not found", 404);
+        }
+
+        // 3. Transfer ownership, only if the owner is still unchanged.
+        const result = await tx.task.updateMany({
+            where: {
+                id: taskId,
+                userId: currentUserId,
+            },
+            data: {
+                userId: toUserId,
+            },
+        });
+
+        if(result.count !== 1) {
+            throw new AppError("Task could not be transferred", 409);
+        }
+
+        // 4. Record the transfer in same transaction.
+        await tx.taskTransferAudit.create({
+            data: {
+                taskId: task.id,
+                fromUserId: task.userId,
+                toUserId,
+            },
+        });
+
+        // 5. Return the update task.
+        return tx.task.findUniqueOrThrow({
+            where: { id: taskId },
+        });
+    });
+
+
+    return res.status(200).json({
+        message: "Task transferred successfully",
+        task: transferredTask,
+    });
+});

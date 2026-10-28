@@ -74,3 +74,14 @@ model Task {
 
   @@index([userId, createdAt])
 }
+
+model TaskTransferAudit {
+  id              Int               @id @default(autoincrement())
+  taskId          Int
+  fromUserId      Int
+  toUserId        Int
+  transferredAt   DateTime          @default(now())
+
+  @@index([taskId, transferredAt])
+  @@index([fromUserId, transferredAt])
+}

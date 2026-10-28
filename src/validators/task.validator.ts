@@ -14,3 +14,8 @@ export const bulkCreateTaskSchema = z.object({
         .min(1, "At least one task is required")
         .max(100, "You can create at most 100 tasks at once")
 }).strict();
+
+
+export const transferTaskSchema = z.object({
+    toUserId: z.number().int().positive(),
+}).strict();
